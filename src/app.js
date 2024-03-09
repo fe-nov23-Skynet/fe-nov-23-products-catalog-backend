@@ -1,6 +1,8 @@
 import  express  from 'express';
 import { Server } from "socket.io";
 import http from 'http';
+import OpenAI from "openai";
+
 
 const app = express();
 const server = http.createServer(app);
@@ -61,10 +63,10 @@ io.sockets.on('connection', (socket) => {
     socket.join(room.id);
     const responce = {
       roomId: room.id,
-      authorId: 1,
+      authorId: 0,
       authorName: 'ADMIN',
       avatarURL: '/img/admin_avatar.avif',
-      body: 'Hello, I am here to help you. How can I help you?',
+      body: 'Hello! How we can help you?',
     };
     io.to(room.id).emit('server:msg', responce);
     console.log('room created:', room.id);
@@ -88,7 +90,7 @@ io.sockets.on('connection', (socket) => {
       socket.join(room.id);
       const responce = {
         roomId: room.id,
-        authorId: 1,
+        authorId: 0,
         authorName: 'Pavlo',
         avatarURL: '/img/admin_avatar.avif',
         body: 'Support team member joined the chat.',
@@ -116,11 +118,21 @@ io.sockets.on('connection', (socket) => {
 });
 
 
+/* const openai = new OpenAI({
+  apiKey: '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',
+});
 
+async function testAI() {
+  const chatCompletion = await openai.chat.completions.create({
+    messages: [{ role: "user", content: "Say this is a test" }],
+    model: "gpt-3.5-turbo",
+  });
 
+  console.log(chatCompletion.choices[0].message);
 
+}
 
-
+testAI(); */
 
 /* const PORThttp = 4001;
 const PORTio = 4000; */
