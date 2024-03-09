@@ -97,6 +97,22 @@ io.sockets.on('connection', (socket) => {
       console.log('admin:joinRoom', data);
     }
   });
+
+  socket.on('admin:msg', (message) => {
+    const room = rooms.find((r) => r.id === message.roomId);
+    console.log('in room: ' + room.id);
+
+    console.log(`Received message: ${message.body}`);
+    const message1 = {
+      roomId: room.id,
+      avatarURL: message.avatarURL,
+      authorId: message.authorId,
+      authorName: message.authorName,
+      body: message.body,
+    };
+    room.messages.push(message);
+    io.in(room.id).emit('server:msg', message1);
+  });
 });
 
 
