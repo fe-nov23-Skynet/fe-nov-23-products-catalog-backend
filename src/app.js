@@ -29,19 +29,21 @@ io.sockets.on('connection', (socket) => {
     rooms = rooms.filter(r => r.id !== String(socket.handshake.issued));
   });
 
-  socket.on('user:msg', (data) => {
+  socket.on('user:msg', (message) => {
     const socketIssue = String(socket.handshake.issued);
     const room = rooms.find((r) => r.id === socketIssue);
     console.log('in room: ' + room.id);
 
-    console.log(`Received message: ${data.messageText}`);
-    const responce = {
-      authorId: 1,
-      authorName: 'Pavlo',
-      body: data.messageText,
+    console.log(`Received message: ${message.body}`);
+    const message1 = {
+      roomId: room.id,
+      avatarURL: message.avatarURL,
+      authorId: message.authorId,
+      authorName: message.authorName,
+      body: message.body,
     };
-
-    io.in(room.id).emit('server:msg', responce);
+    room.messages.push(message);
+    io.in(room.id).emit('server:msg', message1);
   });
 
   socket.on('user:needHelp', (data) => {
@@ -49,6 +51,8 @@ io.sockets.on('connection', (socket) => {
 
     const room = {
       id: (socket.handshake.issued).toString(),
+      members: [socket.handshake.issued.toString()],
+      messages: [],
     };
 
     if (rooms.every(r => r.id !== room.id) ) {
@@ -56,13 +60,42 @@ io.sockets.on('connection', (socket) => {
     }
     socket.join(room.id);
     const responce = {
+      roomId: room.id,
       authorId: 1,
-      authorName: 'Pavlo',
+      authorName: 'ADMIN',
+      avatarURL: '/img/admin_avatar.avif',
       body: 'Hello, I am here to help you. How can I help you?',
     };
     io.to(room.id).emit('server:msg', responce);
     console.log('room created:', room.id);
     console.log('rooms:', rooms);
+  });
+
+  socket.on('admin:rooms', () => {
+    console.log('admin:rooms');
+    socket.emit('server:rooms', rooms);
+  });
+
+  socket.on('admin:joinRoom', (data) => {
+    const socketIssue = String(socket.handshake.issued);
+    const room = rooms.find((r) => r.id === data.id);
+    const members = room.members;
+    const isMember = members.some(m => m === socketIssue);
+
+    if (!isMember) {
+      members.push(socketIssue);
+      room.members = members;
+      socket.join(room.id);
+      const responce = {
+        roomId: room.id,
+        authorId: 1,
+        authorName: 'Pavlo',
+        avatarURL: '/img/admin_avatar.avif',
+        body: 'Support team member joined the chat.',
+      };
+      io.to(room.id).emit('server:msg', responce);
+      console.log('admin:joinRoom', data);
+    }
   });
 });
 
