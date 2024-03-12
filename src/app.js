@@ -2,6 +2,11 @@ import  express  from 'express';
 import { Server } from "socket.io";
 import http from 'http';
 import OpenAI from "openai";
+import dotenv from 'dotenv'
+
+dotenv.config();
+const OPENAI_API_KEY = process.env.OPENAI_KEY;
+const ASSISTANT_ID = process.env.ASSISTANT_ID;
 
 
 const app = express();
@@ -169,11 +174,11 @@ io.sockets.on('connection', (socket) => {
 
 
 const openai = new OpenAI({
-  apiKey: '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',
+  apiKey: OPENAI_API_KEY,
 });
 
 async function createAIChat() {
-  const assistant = await openai.beta.assistants.retrieve('asst_gc3HWkC5sYga6z1FOjzzjeT8');
+  const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
   const thread = await openai.beta.threads.create();
 
   async function sendMessage(text) {
@@ -220,95 +225,3 @@ async function createAIChat() {
     listenAIAnswers,
   };
 }
-
-
-// chatGPT
-/*   useEffect(() => {
-    const fetchData = async () => {
-      const assistant1 = await openai.beta.assistants.retrieve('asst_gc3HWkC5sYga6z1FOjzzjeT8');
-      setAssistant(assistant1);
-      const thread1 = await openai.beta.threads.create();
-      setThread(thread1);
-    };
-
-    fetchData();
-  }, []);
-
-  async function sendMessage() {
-    setMessageText('');
-
-    if (assistant && thread) {
-      const message = await openai.beta.threads.messages.create(
-        thread.id,
-        {
-          role: 'user',
-          content: messageText,
-        },
-      );
-      const run = await openai.beta.threads.runs.create(
-        thread.id,
-        {
-          assistant_id: assistant.id,
-        },
-      );
-    }
-  }
-
-  useEffect(() => {
-    setInterval(async () => {
-      if (assistant && thread) {
-        const messages3 = await openai.beta.threads.messages.list(
-          thread.id,
-        );
-        console.log(messages3);
-        const newMessages = messages3.data.map(msg => {
-          if ('text' in msg.content[0]) {
-            return {
-              authorId: msg.role === 'assistant' ? 1 : 2,
-              authorName: 'Alice',
-              body: msg.content[0].text.value,
-              avatarURL: msg.role === 'assistant' ? adminImgURL : userImgURL,
-            };
-          }
-          return null;
-        });
-        setMessages(newMessages.filter(Boolean).reverse() as Message[]);
-      }
-    }, 2000);
-  }, [assistant, thread]); */
-
-
-
-
-
-/* const openai = new OpenAI({
-  apiKey: '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',
-});
-
-async function testAI() {
-  const chatCompletion = await openai.chat.completions.create({
-    messages: [{ role: "user", content: "Say this is a test" }],
-    model: "gpt-3.5-turbo",
-  });
-
-  console.log(chatCompletion.choices[0].message);
-
-}
-
-testAI(); */
-
-/* const PORThttp = 4001;
-const PORTio = 4000; */
-
-/* server.listen(PORThttp, () => {
-  console.log(`listening on *:${PORThttp}`);
-});
- */
-
-/* const io = new Server({
-  cors: {
-    origin: "http://localhost:3000"
-  }
-});
-  io.listen(PORTio);
-*/
