@@ -7,7 +7,7 @@ import dotenv from 'dotenv'
 dotenv.config();
 const OPENAI_API_KEY = process.env.OPENAI_KEY;
 const ASSISTANT_ID = process.env.ASSISTANT_ID;
-
+const CORS_HOST = process.env.HOST;
 
 const app = express();
 const server = http.createServer(app);
@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000"
+    origin: CORS_HOST
   }
 });
 
