@@ -22,8 +22,9 @@ const io = new Server(server, {
 const adminImgURL = '/img/admin_avatar.avif';
 const userImgURL = '/img/user_avatar.avif';
 
-const PORT = 4000; /* process.env.PORT || 4000; */
+const PORT = process.env.PORT || 4000;
 const HOST = '0.0.0.0';
+
 server.listen(PORT, HOST, () => {
   console.log(`listening on *:${PORT}`);
 });
@@ -200,7 +201,8 @@ async function createAIChat() {
 
   async function sendMessage(text) {
     if (assistant && thread) {
-      const message = await openai.beta.threads.messages.create(
+      try {
+        const message = await openai.beta.threads.messages.create(
         thread.id,
         {
           role: 'user',
@@ -212,7 +214,22 @@ async function createAIChat() {
         {
           assistant_id: assistant.id,
         },
+      );} catch (error) {
+        console.log(`Can't send mesage to OpenAI: ${error}`);
+      }
+      /* const message = await openai.beta.threads.messages.create(
+        thread.id,
+        {
+          role: 'user',
+          content: text,
+        },
       );
+      const run = await openai.beta.threads.runs.create(
+        thread.id,
+        {
+          assistant_id: assistant.id,
+        },
+      ); */
     }
   }
   function listenAIAnswers(sendAIAnswer) {
