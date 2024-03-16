@@ -1,4 +1,4 @@
-import  express  from 'express';
+import express from 'express';
 import { Server } from "socket.io";
 import http from 'http';
 import OpenAI from "openai";
@@ -52,28 +52,44 @@ async function createRoom(socket) {
     members: [socket.handshake.issued.toString()],
     messages: [],
     sendMessageToAI: sendMessage,
-   };
+  };
 
   function sendMessageToRoom(room) {
-   return (messagesList) => {
-    messagesList.forEach(message => {
-      if (!room.messages.some(m => m.body === message.body)){
-        room.messages.push(message);
-        io.to(room.id).emit('server:msg', message)
-      }
-    });
+    return (messagesList) => {
+      messagesList.forEach(message => {
+        if (!room.messages.some(m => m.body === message.body)) {
+          room.messages.push(message);
+          io.to(room.id).emit('server:msg', message)
+        }
+      });
 
-  };
+    };
   }
 
   listenAIAnswers(sendMessageToRoom(room));
 
-  if (rooms.every(r => r.id !== room.id) ) {
+  if (rooms.every(r => r.id !== room.id)) {
     rooms.push(room);
   }
   socket.join(room.id);
 
   sendRoomsToAdmins();
+
+  return room;
+}
+
+async function createHelpRoom(socket) {
+  const room = await createRoom(socket);
+  const responce = {
+    roomId: room.id,
+    authorId: 0,
+    authorName: 'ADMIN',
+    avatarURL: '/img/admin_avatar.avif',
+    body: 'Hello! AI helper here to assist you. Write Your question below.',
+  };
+
+  io.to(room.id).emit('server:msg', responce);
+  console.log('room created:', room.id);
 
   return room;
 }
@@ -87,42 +103,43 @@ io.sockets.on('connection', (socket) => {
     rooms = rooms.filter(r => r.id !== String(socket.handshake.issued));
     sendRoomsToAdmins();
 
-    if (adminsList.includes(String(socket.handshake.issued)) ) {
+    if (adminsList.includes(String(socket.handshake.issued))) {
       adminsList = adminsList.filter(a => a !== String(socket.handshake.issued));
     }
   });
 
-  socket.on('user:msg', (message) => {
+  socket.on('user:msg', async (message) => {
     const socketIssue = String(socket.handshake.issued);
     const room = rooms.find((r) => r.id === socketIssue);
-    console.log('in room: ' + room.id);
 
-    console.log(`Received message: ${message.body}`);
-    const message1 = {
-      roomId: room.id,
-      avatarURL: message.avatarURL,
-      authorId: message.authorId,
-      authorName: message.authorName,
-      body: message.body,
-    };
-    room.sendMessageToAI(message.body);
-    /* room.messages.push(message);
-    io.in(room.id).emit('server:msg', message1); */
+    if (room) {
+      console.log('in room: ' + room.id);
+      console.log(`Received message: ${message.body}`);
+      const message1 = {
+        roomId: room.id,
+        avatarURL: message.avatarURL,
+        authorId: message.authorId,
+        authorName: message.authorName,
+        body: message.body,
+      };
+      room.sendMessageToAI(message.body);
+    } else {
+      const room = await createHelpRoom(socket);
+      const message1 = {
+        roomId: room.id,
+        avatarURL: message.avatarURL,
+        authorId: message.authorId,
+        authorName: message.authorName,
+        body: message.body,
+      };
+      room.sendMessageToAI(message.body);
+    }
+
   });
 
   socket.on('user:needHelp', async (data) => {
     console.log(`User need help.`);
-
-    const room = await createRoom(socket);
-    const responce = {
-      roomId: room.id,
-      authorId: 0,
-      authorName: 'ADMIN',
-      avatarURL: '/img/admin_avatar.avif',
-      body: 'Hello! AI helper will help you soon. Please wait.',
-    };
-    io.to(room.id).emit('server:msg', responce);
-    console.log('room created:', room.id);
+    createHelpRoom(socket);
   });
 
   socket.on('admin:rooms', () => {
@@ -201,21 +218,26 @@ async function createAIChat() {
   function listenAIAnswers(sendAIAnswer) {
     const listener = setInterval(async () => {
       if (assistant && thread) {
-        const messagesArray = await openai.beta.threads.messages.list(
-          thread.id,
-        );
-        const newMessages = messagesArray.data.map(msg => {
-          if ('text' in msg.content[0]) {
-            return {
-              authorId: msg.role === 'assistant' ? 1 : 2,
-              authorName: 'Alice',
-              body: msg.content[0].text.value,
-              avatarURL: msg.role === 'assistant' ? adminImgURL : userImgURL,
-            };
-          }
-          return null;
-        });
-        sendAIAnswer(newMessages);
+        try {
+          const messagesArray = await openai.beta.threads.messages.list(
+            thread.id,
+          );
+          const newMessages = messagesArray.data.map(msg => {
+            if ('text' in msg.content[0]) {
+              return {
+                authorId: msg.role === 'assistant' ? 1 : 2,
+                role: msg.role,
+                authorName: 'Alice',
+                body: msg.content[0].text.value,
+                avatarURL: msg.role === 'assistant' ? adminImgURL : userImgURL,
+              };
+            }
+            return null;
+          });
+          sendAIAnswer(newMessages.filter(m => m.role === 'assistant'));
+        } catch (error) {
+          console.log(`Error: ${error}`);
+        }
       }
     }, 2000);
   }
