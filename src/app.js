@@ -46,12 +46,16 @@ function sendRoomsToAdmins() {
 async function createRoom(socket) {
   const { sendMessage, listenAIAnswers } = await createAIChat();
 
-
+  function pushMessageToRoom(room, message) {
+    room.messages.push(message);
+    io.to(room.id).emit('server:msg', message)
+  }
 
   const room = {
     id: (socket.handshake.issued).toString(),
     members: [socket.handshake.issued.toString()],
     messages: [],
+    pushMessageToRoom: pushMessageToRoom,
     sendMessageToAI: sendMessage,
   };
 
@@ -59,8 +63,7 @@ async function createRoom(socket) {
     return (messagesList) => {
       messagesList.forEach(message => {
         if (!room.messages.some(m => m.body === message.body)) {
-          room.messages.push(message);
-          io.to(room.id).emit('server:msg', message)
+          pushMessageToRoom(room, message);
         }
       });
 
@@ -122,8 +125,10 @@ io.sockets.on('connection', (socket) => {
         authorId: message.authorId,
         authorName: message.authorName,
         body: message.body,
+        role: 'user',
       };
       room.sendMessageToAI(message.body);
+      room.pushMessageToRoom(room, message1);
     } else {
       const room = await createHelpRoom(socket);
       const message1 = {
@@ -183,9 +188,10 @@ io.sockets.on('connection', (socket) => {
       avatarURL: message.avatarURL,
       authorId: message.authorId,
       authorName: message.authorName,
+      role: 'Support',
       body: message.body,
     };
-    room.messages.push(message);
+    room.messages.push(message1);
     io.in(room.id).emit('server:msg', message1);
   });
 });
