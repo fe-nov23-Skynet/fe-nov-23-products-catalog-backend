@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: CORS_HOST
+    origin: '*', // CORS_HOST
   }
 });
 
@@ -217,19 +217,6 @@ async function createAIChat() {
       );} catch (error) {
         console.log(`Can't send mesage to OpenAI: ${error}`);
       }
-      /* const message = await openai.beta.threads.messages.create(
-        thread.id,
-        {
-          role: 'user',
-          content: text,
-        },
-      );
-      const run = await openai.beta.threads.runs.create(
-        thread.id,
-        {
-          assistant_id: assistant.id,
-        },
-      ); */
     }
   }
   function listenAIAnswers(sendAIAnswer) {
