@@ -47,8 +47,9 @@ async function createRoom(socket) {
   const { sendMessage, listenAIAnswers } = await createAIChat();
 
   function pushMessageToRoom(room, message) {
-    room.messages.push(message);
-    io.to(room.id).emit('server:msg', message)
+    const remappedMessage = {...message, roomId: room.id};
+    room.messages.push(remappedMessage);
+    io.in(room.id).emit('server:msg', remappedMessage)
   }
 
   const room = {
